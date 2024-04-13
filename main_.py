@@ -1,11 +1,14 @@
 import tkinter
+import random
 
 WINDOW_BG = 'black'
 CANVAS_BG = 'white'
-TILE_SIZE = 32
+TILE_SIZE = 100
 LINE_COLOR = 'black'
 SNAKE_COLOR = 'red'
-FPS = 3
+FOOD_COLOR = 'green'
+SECTION_COLOR = 'grey'
+FPS = 5
 
 
 class App:
@@ -14,21 +17,19 @@ class App:
         self.window.attributes('-fullscreen', True)
         self.width = self.window.winfo_screenwidth()
         self.height = self.window.winfo_screenheight()
-        self.canvas_side = min((self.height, self.width))
-        self.tiles_ammount = self.canvas_side // TILE_SIZE
         self.window.bind('<Key>', self.on_key)
         self.window['bg'] = WINDOW_BG
         self.canvas = tkinter.Canvas(
             self.window,
-            width=self.canvas_side,
-            height=self.canvas_side,
+            width=self.width // TILE_SIZE * TILE_SIZE,
+            height=self.height // TILE_SIZE * TILE_SIZE,
             bg=CANVAS_BG,
             highlightthickness=0
         )
-        self.canvas.pack()
+        self.canvas.pack(expand=True)
         self.canvas.update()
         self.draw_lines()
-        self.game = Game(self.canvas, self.tiles_ammount)
+        self.game = Game(self.canvas)
         self.window.mainloop()
 
     def on_key(self, event: tkinter.Event) -> None:
@@ -38,7 +39,7 @@ class App:
             self.game.on_key(event)
 
     def draw_lines(self) -> None:
-        for i in range(1, int(self.tiles_ammount)):
+        for i in range(1, self.width // TILE_SIZE):
             self.canvas.create_line(
                 i * TILE_SIZE,
                 0,
@@ -46,6 +47,7 @@ class App:
                 self.height,
                 fill=LINE_COLOR
             )
+        for i in range(1, self.height // TILE_SIZE):
             self.canvas.create_line(
                 0,
                 i * TILE_SIZE,
@@ -56,27 +58,35 @@ class App:
 
 
 class Game:
-    def __init__(self, canvas: tkinter.Canvas, tiles_ammount: int) -> None:
+    def __init__(self, canvas: tkinter.Canvas) -> None:
         self.canvas = canvas
-        self.size = tiles_ammount
+        self.cols = self.canvas.winfo_width() // TILE_SIZE
+        self.rows = self.canvas.winfo_height() // TILE_SIZE
         self.snake = Snake(
-            self.size // 2,
-            self.size // 2,
-            TILE_SIZE,
+            self.cols // 2,
+            self.rows // 2,
             canvas,
             SNAKE_COLOR,
             'Up',
             'Down',
             'Left',
             'Right',
-            self.size
         )
+        self.food = None
         self.update()
 
     def update(self) -> None:
-        self.canvas.delete('snake')
+        if not self.food:
+            self.food = Food(
+                self.canvas,
+                random.randint(0, self.cols - 1),
+                random.randint(0, self.rows - 1),
+                FOOD_COLOR
+            )
+        self.food.draw()
         self.snake.collide_borders()
         self.snake.draw()
+        self.snake.eat_food(self)
         if self.snake.is_active:
             self.snake.move()
             self.canvas.after(1000 // FPS, self.update)
@@ -90,18 +100,15 @@ class Snake:
             self,
             col: int,
             row: int,
-            size: int,
             canvas: tkinter.Canvas,
             color: str,
             key_up: str,
             key_down: str,
             key_left: str,
             key_right: str,
-            tiles_ammount: int
     ) -> None:
         self.col = col
         self.row = row
-        self.size = size
         self.color = color
         self.canvas = canvas
         self.key_up = key_up
@@ -111,15 +118,27 @@ class Snake:
         self.direction = (1, 0)
         self.max_col = self.canvas.winfo_width() // TILE_SIZE
         self.max_row = self.canvas.winfo_height() // TILE_SIZE
-        self.tiles_ammount = tiles_ammount
+        self.tag = 'snake'
+        self.body = []
         self.is_active = 1
 
     def draw(self) -> None:
+        self.canvas.delete('snake')
+        for section in self.body:
+            self.canvas.create_rectangle(
+                section[0] * TILE_SIZE,
+                section[1] * TILE_SIZE,
+                section[0] * TILE_SIZE + TILE_SIZE,
+                section[1] * TILE_SIZE + TILE_SIZE,
+                fill=SECTION_COLOR,
+                tags=self.tag
+            )
+
         self.canvas.create_rectangle(
             self.col * TILE_SIZE,
             self.row * TILE_SIZE,
-            self.col * TILE_SIZE + self.size,
-            self.row * TILE_SIZE + self.size,
+            self.col * TILE_SIZE + TILE_SIZE,
+            self.row * TILE_SIZE + TILE_SIZE,
             fill=self.color,
             tags='snake'
         )
@@ -143,18 +162,59 @@ class Snake:
         self.direction = direction
 
     def move(self) -> None:
+        if not self.is_active:
+            return
+        if self.body:
+            self.body = [(self.col, self.row)] + self.body[:-1]
         self.col += self.direction[0]
         self.row += self.direction[1]
 
     def collide_borders(self) -> None:
         self.canvas.update()
-        print(self.col, self.tiles_ammount)
-        if self.col >= self.tiles_ammount - 1:
+        if self.col >= self.max_col:  # справа
+            self.canvas['bg'] = 'red'
             self.is_active = 0
+        if self.row >= self.max_row:  # снизу
+            self.canvas['bg'] = 'red'
+            self.is_active = 0
+        if self.col <= -1:  # слева
+            self.canvas['bg'] = 'red'
+            self.is_active = 0
+        if self.row <= -1:  # снизу
+            self.canvas['bg'] = 'red'
+            self.is_active = 0
+
+    def eat_food(self, game: Game) -> None:
+        if self.col == game.food.col:
+            if self.row == game.food.row:
+                self.body.append((game.food.col, game.food.row))
+                self.canvas.delete(game.food.tag)
+                game.food = None
 
 
 class Food:
-    pass
+    def __init__(
+            self,
+            canvas: tkinter.Canvas,
+            col: int,
+            row: int,
+            color: str,
+    ) -> None:
+        self.canvas = canvas
+        self.col = col
+        self.row = row
+        self.color = color
+        self.tag = 'food'
+
+    def draw(self) -> None:
+        self.canvas.create_rectangle(
+            self.col * TILE_SIZE,
+            self.row * TILE_SIZE,
+            self.col * TILE_SIZE + TILE_SIZE,
+            self.row * TILE_SIZE + TILE_SIZE,
+            fill=self.color,
+            tags='food'
+        )
 
 
 App()
