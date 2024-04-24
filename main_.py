@@ -5,9 +5,11 @@ WINDOW_BG = 'black'
 CANVAS_BG = 'white'
 TILE_SIZE = 100
 LINE_COLOR = 'black'
-SNAKE_COLOR = 'red'
+SNAKE_COLOR = 'green'
 FOOD_COLOR = 'green'
 SECTION_COLOR = 'grey'
+MENU_TEXT_COLOR = 'black'
+MENU_FONT_NAME = 'Impact'
 FPS = 5
 
 
@@ -17,7 +19,6 @@ class App:
         self.window.attributes('-fullscreen', True)
         self.width = self.window.winfo_screenwidth()
         self.height = self.window.winfo_screenheight()
-        self.window.bind('<Key>', self.on_key)
         self.window['bg'] = WINDOW_BG
         self.canvas = tkinter.Canvas(
             self.window,
@@ -29,14 +30,14 @@ class App:
         self.canvas.pack(expand=True)
         self.canvas.update()
         self.draw_lines()
-        self.game = Game(self.canvas)
+        self.game = Game(
+            self.canvas,
+            'Up',
+            'Down',
+            'Left',
+            'Right',
+        )
         self.window.mainloop()
-
-    def on_key(self, event: tkinter.Event) -> None:
-        if event.keysym == 'Escape':
-            self.window.destroy()
-        else:
-            self.game.on_key(event)
 
     def draw_lines(self) -> None:
         for i in range(1, self.width // TILE_SIZE):
@@ -58,41 +59,92 @@ class App:
 
 
 class Game:
-    def __init__(self, canvas: tkinter.Canvas) -> None:
+    def __init__(self,
+                 canvas: tkinter.Canvas,
+                 key_up: str,
+                 key_down: str,
+                 key_left: str,
+                 key_right: str,
+                 ) -> None:
+        self.key_up = key_up
+        self.key_down = key_down
+        self.key_left = key_left
+        self.key_right = key_right
         self.canvas = canvas
+        self.canvas.bind('<Key>', self.on_key)
+        self.canvas.focus_set()
         self.cols = self.canvas.winfo_width() // TILE_SIZE
         self.rows = self.canvas.winfo_height() // TILE_SIZE
+        self.width = self.canvas.winfo_width()
+        self.height = self.canvas.winfo_height()
+        self.snake = None
+        self.is_running = 0
+        self.food = None
+        self.last_key = None
+        self.show_menu()
+
+    def show_menu(self) -> None:
+        self.canvas.create_text(
+            self.width // 2,
+            self.height // 2,
+            text='Enter - играть \n Esc - выйти',
+            fill=MENU_TEXT_COLOR,
+            font=(MENU_FONT_NAME, int(min((self.width, self.height)) * 0.23)),
+            justify='center',
+        )
+
+    def start(self) -> None:
+        self.food = Food(
+                self.canvas,
+                2,
+                2,
+                FOOD_COLOR
+            )
         self.snake = Snake(
             self.cols // 2,
             self.rows // 2,
-            canvas,
+            self.canvas,
             SNAKE_COLOR,
             'Up',
             'Down',
             'Left',
             'Right',
         )
-        self.food = None
+        self.canvas.delete(self.snake.tag, self.food.tag)
         self.update()
 
     def update(self) -> None:
+        self.last_direction = None
         if not self.food:
+            col = random.randint(0, self.cols - 1)
+            row = random.randint(0, self.rows - 1)
             self.food = Food(
                 self.canvas,
-                random.randint(0, self.cols - 1),
-                random.randint(0, self.rows - 1),
+                col,
+                row,
                 FOOD_COLOR
             )
         self.food.draw()
+        self.snake.change_direction()
         self.snake.collide_borders()
         self.snake.draw()
+        self.snake.collide_body()
         self.snake.eat_food(self)
         if self.snake.is_active:
             self.snake.move()
             self.canvas.after(1000 // FPS, self.update)
+        else:
+            self.is_running = 0
+            self.show_menu()
 
-    def on_key(self, event) -> None:
-        self.snake.on_key(event)
+    def on_key(self, event: tkinter.Event) -> None:
+        if event.keysym == 'Escape':
+            self.canvas.winfo_toplevel().destroy()
+        elif event.keysym == 'Return':
+            if not self.is_running:
+                self.start()
+        else:
+            self.snake.last_key = event.keysym
 
 
 class Snake:
@@ -107,14 +159,15 @@ class Snake:
             key_left: str,
             key_right: str,
     ) -> None:
-        self.col = col
-        self.row = row
-        self.color = color
-        self.canvas = canvas
         self.key_up = key_up
         self.key_down = key_down
         self.key_left = key_left
         self.key_right = key_right
+        self.col = col
+        self.row = row
+        self.color = color
+        self.canvas = canvas
+        self.last_key = None
         self.direction = (1, 0)
         self.max_col = self.canvas.winfo_width() // TILE_SIZE
         self.max_row = self.canvas.winfo_height() // TILE_SIZE
@@ -143,23 +196,24 @@ class Snake:
             tags='snake'
         )
 
-    def on_key(self, event: tkinter.Event) -> None:
-        if event.keysym == self.key_right:
-            self.change_direction((1, 0))
-        if event.keysym == self.key_left:
-            self.change_direction((-1, 0))
-        if event.keysym == self.key_up:
-            self.change_direction((0, -1))
-        if event.keysym == self.key_down:
-            self.change_direction((0, 1))
-
-    def change_direction(self, direction) -> None:
-
-        if self.direction[0] == direction[0] * -1:
+    def change_direction(self) -> None:
+        if self.last_key == self.key_right:
+            new_direction = (1, 0)
+        elif self.last_key == self.key_left:
+            new_direction = (-1, 0)
+        elif self.last_key == self.key_up:
+            new_direction = (0, -1)
+        elif self.last_key == self.key_down:
+            new_direction = (0, 1)
+        else:
             return
-        if self.direction[1] == direction[1] * -1:
+
+        if self.direction[0] == -new_direction[0]:
             return
-        self.direction = direction
+        if self.direction[1] == -new_direction[1]:
+            return
+        self.direction = new_direction
+        self.last_key = None
 
     def move(self) -> None:
         if not self.is_active:
@@ -182,6 +236,10 @@ class Snake:
             self.is_active = 0
         if self.row <= -1:  # снизу
             self.canvas['bg'] = 'red'
+            self.is_active = 0
+
+    def collide_body(self) -> None:
+        if (self.col, self.row) in self.body:
             self.is_active = 0
 
     def eat_food(self, game: Game) -> None:
