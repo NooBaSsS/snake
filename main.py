@@ -21,7 +21,7 @@ def main() -> None:
 
     for col in range(config.CELL_WIDTH):
         for row in range(config.CELL_HEIGHT):
-            cells.append((col, row))
+            cells.append((col, row))  # noqa: PERF401
 
     player = Player()
     tail = Tail(cell_size=cell_size)
@@ -50,7 +50,7 @@ def main() -> None:
         all_sprites.draw(screen)
         pg.display.flip()
 
-        clock.tick(10)
+        clock.tick(10)  # TODO: в конфиг
 
     pg.quit()
     sys.exit()
