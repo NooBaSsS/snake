@@ -15,19 +15,20 @@ if TYPE_CHECKING:
 class Player(pg.sprite.Sprite):
     """Игрок."""
 
-    def __init__(self, start_pos=(5, 5)) -> None:  #  TODO: начальная позиция в конфиг
+    def __init__(self) -> None:
         """Инициализация."""
         super().__init__()
+        self.start_pos = config.PLAYER_START_POS
         self.cell_size = config.CELL_SIZE
         self.image = pg.Surface((self.cell_size, self.cell_size))
         self.image.fill(config.GREEN)
         self.rect = self.image.get_rect()
         self.rect.topleft = (
-            start_pos[0] * self.cell_size,
-            start_pos[1] * self.cell_size,
+            self.start_pos[0] * self.cell_size,
+            self.start_pos[1] * self.cell_size,
         )
 
-        self.grid_pos = start_pos
+        self.grid_pos = self.start_pos
         self.direction = (1, 0)
 
     def handle_keys(self) -> bool:
