@@ -33,7 +33,11 @@ class Food(pg.sprite.Sprite):
         free_cells = [cell for cell in cells if cell not in exclude]
         return random.choice(free_cells)  # noqa: S311
 
-    def respawn(self, exclude: list[tuple], cells: list[tuple[int, int]]) -> None:
+    def respawn(
+        self,
+        exclude: tuple[tuple[int, int]],
+        cells: list[tuple[int, int]],
+    ) -> None:
         """Перемещает еду в новую случайную позицию."""
         self.position = self.random_position(exclude, cells)
         self.update_rect()

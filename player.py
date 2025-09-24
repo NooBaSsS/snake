@@ -31,23 +31,16 @@ class Player(pg.sprite.Sprite):
         self.grid_pos = self.start_pos
         self.direction = (1, 0)
 
-    def handle_keys(self) -> bool:
+    def handle_keys(self, event: pg.event.Event) -> None:
         """Обработка нажатия клавиш."""
-        for event in pg.event.get():  # FIX: запретить разворот
-            if event.type == pg.QUIT:
-                return False
-            if event.type == pg.KEYDOWN:
-                if event.key in (config.K_QUIT, config.K_Q):
-                    return False
-                if event.key == config.K_UP:
-                    self.set_direction((0, -1))
-                elif event.key == config.K_DOWN:
-                    self.set_direction((0, 1))
-                elif event.key == config.K_LEFT:
-                    self.set_direction((-1, 0))
-                elif event.key == config.K_RIGHT:
-                    self.set_direction((1, 0))
-        return True
+        if event.key == config.K_UP:  # FIX: запретить разворот
+            self.set_direction((0, -1))
+        elif event.key == config.K_DOWN:
+            self.set_direction((0, 1))
+        elif event.key == config.K_LEFT:
+            self.set_direction((-1, 0))
+        elif event.key == config.K_RIGHT:
+            self.set_direction((1, 0))
 
     def set_direction(self, new_dir: tuple) -> None:
         """Изменение направления."""
@@ -68,16 +61,15 @@ class Player(pg.sprite.Sprite):
 
     def check_collision(self, tail: Tail, food: tuple) -> int:
         """Проверка столкновения."""
-        # TODO: комментарий к кодам
         x, y = self.grid_pos
         cell_width = config.CELL_WIDTH
         cell_height = config.CELL_HEIGHT
         if x < 0 or x >= cell_width or y < 0 or y >= cell_height:
-            return -1
+            return -1  # выход за пределы
         if (x, y) in tail.get_segments():
-            return -1
+            return -1  # столкновение с хвостом  # noqa: RUF003
         if (x, y) == food:
-            return 1
+            return 1  # еда
         return 0
 
     def get_pos(self) -> tuple[int, int]:

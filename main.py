@@ -33,7 +33,14 @@ def main() -> None:
 
     running = True
     while running:
-        running = player.handle_keys()
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                running = False
+            elif event.type == pg.KEYDOWN:
+                if event.key in (config.K_QUIT, config.K_Q):
+                    running = False
+                else:
+                    player.handle_keys(event=event)
 
         old_pos = player.grid_pos
         player.move()
@@ -50,7 +57,7 @@ def main() -> None:
         all_sprites.draw(screen)
         pg.display.flip()
 
-        clock.tick(10)  # TODO: в конфиг
+        clock.tick(config.FPS)
 
     pg.quit()
     sys.exit()
