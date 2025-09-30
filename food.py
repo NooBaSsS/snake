@@ -1,54 +1,37 @@
-"""Еда."""
+"""Класс еды."""
 
 import random
 
-import pygame as pg
+import arcade
 
-import config
+from config import CELL_SIZE, FOOD_COLOR, GRID_HEIGHT, GRID_WIDTH
 
 
-class Food(pg.sprite.Sprite):
-    """Еда на поле."""
+class Food:
+    """Класс еды (единичный элемент)."""
 
-    def __init__(
-        self,
-        exclude: list[tuple[int, int]],
-        cells: list[tuple[int, int]],
-    ) -> None:
-        """Инициализация."""
-        super().__init__()
-        self.cell_size = config.CELL_SIZE
-        self.image = pg.Surface((self.cell_size, self.cell_size))
-        self.image.fill(config.RED)
-        self.rect = self.image.get_rect()
-        self.position = self.random_position(exclude, cells)
-        self.update_rect()
+    def __init__(self, forbidden_positions: set) -> None:
+        """Инициализация еды."""
+        self.x = 0
+        self.y = 0
+        self.reposition(forbidden_positions)
 
-    def random_position(
-        self,
-        exclude: list[tuple],
-        cells: list[tuple[int, int]],
-    ) -> tuple[int, int]:
-        """Генерация случайной позиции на сетке, исключая занятые клетки."""
-        free_cells = [cell for cell in cells if cell not in exclude]
-        return random.choice(free_cells)  # noqa: S311
+    def reposition(self, forbidden_positions: set) -> None:
+        """Поместить еду в случайную клетку, не совпадающую с forbidden_positions."""  # noqa: RUF002
+        attempts = 0
+        while True:
+            attempts += 1
+            self.x = random.randrange(0, GRID_WIDTH)  # noqa: S311
+            self.y = random.randrange(0, GRID_HEIGHT)  # noqa: S311
+            if (self.x, self.y) not in forbidden_positions:
+                break
 
-    def respawn(
-        self,
-        exclude: tuple[tuple[int, int]],
-        cells: list[tuple[int, int]],
-    ) -> None:
-        """Перемещает еду в новую случайную позицию."""
-        self.position = self.random_position(exclude, cells)
-        self.update_rect()
+    def draw(self) -> None:
+        """Отрисовка еды."""
+        px = self.x * CELL_SIZE + CELL_SIZE / 2
+        py = self.y * CELL_SIZE + CELL_SIZE / 2
+        arcade.draw_circle_filled(px, py, CELL_SIZE * 0.45, FOOD_COLOR)
 
-    def update_rect(self) -> None:
-        """Обновление rect для отрисовки на экране."""
-        self.rect.topleft = (
-            self.position[0] * self.cell_size,
-            self.position[1] * self.cell_size,
-        )
-
-    def get_pos(self) -> tuple[int, int]:
-        """Получение позиции."""
-        return self.position
+    def get_pos(self) -> tuple:
+        """Возвращает координаты еды."""
+        return (self.x, self.y)

@@ -1,77 +1,50 @@
-"""Игрок."""
+"""Класс игрока (голова змейки)."""
 
-from __future__ import annotations
+import arcade
 
-from typing import TYPE_CHECKING
-
-import pygame as pg
-
-import config
-
-if TYPE_CHECKING:
-    from tail import Tail
+from config import CELL_SIZE, GRID_HEIGHT, GRID_WIDTH, SNAKE_HEAD_COLOR
 
 
-class Player(pg.sprite.Sprite):
-    """Игрок."""
+class Player:
+    """Класс игрока (голова змейки).
 
-    def __init__(self) -> None:
-        """Инициализация."""
-        super().__init__()
-        self.start_pos = config.PLAYER_START_POS
-        self.cell_size = config.CELL_SIZE
-        self.image = pg.Surface((self.cell_size, self.cell_size))
-        self.image.fill(config.GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (
-            self.start_pos[0] * self.cell_size,
-            self.start_pos[1] * self.cell_size,
+    Отвечает за положение, направление и отрисовку головы.
+    Позиции хранятся в координатах клеток (integers).
+    """
+
+    def __init__(self, x: int, y: int) -> None:
+        """Инициализация игрока (головы змейки)."""
+        self.x = x
+        self.y = y
+        self.dx = 1
+        self.dy = 0
+
+    def set_direction(self, dx: int, dy: int) -> None:
+        """Изменить направление движения."""
+        self.dx = dx
+        self.dy = dy
+
+    def update(self) -> None:
+        """Переместить голову на одну клетку в направлении."""
+        self.x += self.dx
+        self.y += self.dy
+
+    def draw(self) -> None:
+        """Нарисовать квадрат игрока (головы змейки)."""
+        px = self.x * CELL_SIZE
+        py = self.y * CELL_SIZE
+        arcade.draw_lbwh_rectangle_filled(
+            px,
+            py,
+            CELL_SIZE,
+            CELL_SIZE,
+            SNAKE_HEAD_COLOR,
         )
 
-        self.grid_pos = self.start_pos
-        self.direction = (1, 0)
+    def out_of_bounds(self) -> bool:
+        """Проверяет, вышел ли игрок за границы игрового поля."""
+        return not (0 <= self.x < GRID_WIDTH and 0 <= self.y < GRID_HEIGHT)
 
-    def handle_keys(self, event: pg.event.Event) -> None:
-        """Обработка нажатия клавиш."""
-        if event.key == config.K_UP:  # FIX: запретить разворот
-            self.set_direction((0, -1))
-        elif event.key == config.K_DOWN:
-            self.set_direction((0, 1))
-        elif event.key == config.K_LEFT:
-            self.set_direction((-1, 0))
-        elif event.key == config.K_RIGHT:
-            self.set_direction((1, 0))
-
-    def set_direction(self, new_dir: tuple) -> None:
-        """Изменение направления."""
-        dx, dy = new_dir
-        cur_dx, cur_dy = self.direction
-        if (dx, dy) != (-cur_dx, -cur_dy):
-            self.direction = new_dir
-
-    def move(self) -> None:
-        """Перемещение."""
-        x, y = self.grid_pos
-        dx, dy = self.direction
-        self.grid_pos = (x + dx, y + dy)
-        self.rect.topleft = (
-            self.grid_pos[0] * self.cell_size,
-            self.grid_pos[1] * self.cell_size,
-        )
-
-    def check_collision(self, tail: Tail, food: tuple) -> int:
-        """Проверка столкновения."""
-        x, y = self.grid_pos
-        cell_width = config.CELL_WIDTH
-        cell_height = config.CELL_HEIGHT
-        if x < 0 or x >= cell_width or y < 0 or y >= cell_height:
-            return -1  # выход за пределы
-        if (x, y) in tail.get_segments():
-            return -1  # столкновение с хвостом  # noqa: RUF003
-        if (x, y) == food:
-            return 1  # еда
-        return 0
-
-    def get_pos(self) -> tuple[int, int]:
-        """Получение позиции."""
-        return self.grid_pos
+    def get_pos(self) -> tuple:
+        """Возвращает координаты игрока (головы змейки)."""
+        return (self.x, self.y)

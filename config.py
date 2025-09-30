@@ -1,24 +1,19 @@
-"""Модуль конфигурации."""
+"""Конфиг."""
 
-import pygame as pg
+from arcade import color
+
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
+SCREEN_TITLE = "Snake — Arcade"
+
+CELL_SIZE = 20
+GRID_WIDTH = SCREEN_WIDTH // CELL_SIZE
+GRID_HEIGHT = SCREEN_HEIGHT // CELL_SIZE
+
+SNAKE_FPS = 5
 
 # цвета
-BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-RED = (255, 0, 0)
-GAME_BG_COLOR = BLACK
-
-# клавиши управления
-K_QUIT = pg.K_ESCAPE
-K_UP = pg.K_w
-K_DOWN = pg.K_s
-K_LEFT = pg.K_a
-K_RIGHT = pg.K_d
-K_Q = pg.K_q
-
-# Настройки
-CELL_WIDTH = 30
-CELL_HEIGHT = 20
-CELL_SIZE = 20
-PLAYER_START_POS = (5, 5)
-FPS = 10
+BG_COLOR = color.BLACK
+SNAKE_HEAD_COLOR = color.APPLE_GREEN
+SNAKE_TAIL_COLOR = color.DARK_GREEN
+FOOD_COLOR = color.RED

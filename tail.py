@@ -1,39 +1,50 @@
-"""Хвост."""
+"""Класс хвоста змейки."""
 
-import pygame as pg
+import arcade
 
-import config
+from config import CELL_SIZE, SNAKE_TAIL_COLOR
 
 
 class Tail:
-    """Хвост."""
+    """Класс хвоста змейки.
 
-    def __init__(self, cell_size: int) -> None:
-        """Инициализация."""
-        self.cell_size = cell_size
-        self.segments = []  # список клеток (x, y)
+    Хранит список сегментов в виде списка позиций (x, y) в клетках.
+    Последний элемент списка — ближайший к голове сегмент.
+    """
 
-    def follow(self, new_head_pos: tuple) -> None:
-        """Следование голове."""
-        if self.segments:
-            self.segments.insert(0, new_head_pos)
-            self.segments.pop()
+    def __init__(self, initial_length: int = 3) -> None:
+        """Инициализация хвоста."""
+        self.segments = []
+        self.target_length = initial_length
 
-    def grow(self, new_segment: tuple) -> None:
-        """Добавление сегмента."""
-        self.segments.append(new_segment)
+    def prepend_head_pos(self, head_pos: tuple) -> None:
+        """Добавляем сегмент в начало хвоста."""
+        self.segments.insert(0, head_pos)
+        # обрезаем хвост
+        if len(self.segments) > self.target_length:
+            self.segments = self.segments[: self.target_length]
 
-    def draw(self, surface: pg.Surface) -> None:
-        """Отрисовка."""
+    def grow(self, amount: int = 1) -> None:
+        """Увеличиваем цель длины хвоста — при поедании еды."""
+        self.target_length += amount
+
+    def draw(self) -> None:
+        """Отрисовка сегментов хвоста."""
         for x, y in self.segments:
-            rect = pg.Rect(
-                x * self.cell_size,
-                y * self.cell_size,
-                self.cell_size,
-                self.cell_size,
+            px = x * CELL_SIZE
+            py = y * CELL_SIZE
+            arcade.draw_lbwh_rectangle_filled(
+                px,
+                py,
+                CELL_SIZE,
+                CELL_SIZE,
+                SNAKE_TAIL_COLOR,
             )
-            pg.draw.rect(surface, config.RED, rect)
 
-    def get_segments(self) -> tuple[int, int]:
-        """Получение сегментов."""
-        return self.segments
+    def collides_with(self, pos: tuple) -> bool:
+        """Проверяем, перекрыл ли хвост позицию pos (x,y)."""
+        return pos in self.segments
+
+    def get_segments(self) -> list:
+        """Возвращает список сегментов хвоста."""
+        return list(self.segments)
